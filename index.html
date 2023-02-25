@@ -13,10 +13,7 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
 
-      width: 100vw;
-      height: 100vh;
-
-      pointer-events: none
+      pointer-events: none;
     }
 
     .centered {
@@ -87,6 +84,10 @@
         }
       }
 
+      if (newy < 0) {
+        collides = true;
+        direction.y = -1;
+      }
       if (newy >= height) {
         collides = true;
         direction.y = 1;
@@ -176,6 +177,8 @@
 
     _c.canvas.width = window.innerWidth;
     _c.canvas.height = window.innerHeight;
+    _c.canvas.style.width = _c.canvas.width+"px";
+    _c.canvas.style.height = _c.canvas.height+"px";
 
     _c.fillStyle = colors.off;
 
