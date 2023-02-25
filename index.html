@@ -31,7 +31,8 @@
 
   <canvas width="300" height="400"></canvas>
 
-  <div>
+  <div id="no-gyro">
+    this site works best with a gyroscoped device!<br>
     roll (side to side) <input id="roll" type="range" min="-10" max="10" value="0" name="" oninput="sliders()">
     pitch (up and down) <input id="pitch" type="range" min="-10" max="10" value="10" name="" oninput="sliders()">
   </div>
@@ -222,30 +223,26 @@
   }
 
   // mobile tilt :)
-  var hasgyro = false;
+  navigator.permissions.query({ name: 'gyroscope' }).then((result) => {
+    if (result.state === 'granted') {
+      window.addEventListener('deviceorientation', event => {
+        let gamma = event.gamma/90;
+        while (gamma > 1) gamma -= 1;
+        while (gamma < -1) gamma += 1;
 
-  window.addEventListener('deviceorientation', event => {
+        let beta = event.beta/90;
+        while (beta > 1) beta -= 1;
+        while (beta < -1) beta += 1;
+        
+        updatedown(gamma, beta);
 
-    let gamma = event.gamma/90;
-    while (gamma > 1) gamma -= 1;
-    while (gamma < -1) gamma += 1;
+        slider_roll.value = gamma*10;
+        slider_pitch.value = beta*10;
+      }, true);
 
-    let beta = event.beta/90;
-    while (beta > 1) beta -= 1;
-    while (beta < -1) beta += 1;
-    
-    updatedown(gamma, beta);
-
-    slider_roll.value = gamma*10;
-    slider_pitch.value = beta*10;
-
-    if (!hasgyro) {
-      hasgyro = true;
-      slider_roll.style.display = "none";
-      slider_pitch.style.display = "none";
-    }
-
-  }, true);
+      document.getElementById("no-gyro").style.display = "none";
+    } 
+  });
 
 </script>
 
