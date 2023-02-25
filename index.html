@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style type="text/css">
+    body {
+      margin: 0;
+    }
+
+    canvas {
+      position: fixed;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+
+      width: 100vw;
+      height: 100vh;
+
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+
+      pointer-events: none
+    }
+
+
+  </style>
+</head>
+<body>
+
+  <canvas width="300" height="400"></canvas>
+
+  <div>
+    roll (side to side) <input id="roll" type="range" min="-10" max="10" value="0" name="" oninput="sliders()">
+    pitch (up and down) <input id="pitch" type="range" min="-10" max="10" value="10" name="" oninput="sliders()">
+  </div>
+
+</body>
+
+<script type="text/javascript">
+
+  class particle {
+    constructor(x, y) {
+      this.position = { x:x||0, y:y||0 };
+      this.previous_position = { x:x||0, y:y||0 };
+
+      this.floored_position = { x:Math.floor(this.position.x), y:Math.floor(this.position.y) };
+      this.floored_previous_position = { x:Math.floor(this.position.x), y:Math.floor(this.position.y) };
+      this.velocity = { x:0, y:0 };
+
+      this.sturdiness = 10;
+
+      this.draw();
+
+      // _c.clearRect(0, 0, offset.x, offset.y);
+
+      particles.push(this);
+    }
+
+    move(x, y) {
+      // check collision
+
+      let newx = this.position.x + x;
+      let newy = this.position.y + y;
+      let floored_newx = Math.floor(newx);
+      let floored_newy = Math.floor(newy);
+
+      var collides = false;
+      var direction = {x:0, y:0};
+      for (let p of particles) {
+        if (p==this) continue;
+        if (
+          p.floored_position.x == floored_newx &&
+          p.floored_position.y == floored_newy
+          ) {
+          collides = true;
+          direction.x = p.position.x - this.position.x;
+          direction.y = p.position.y - this.position.y;
+          break;
+        }
+      }
+
+      if (newy >= height) {
+        collides = true;
+        direction.y = 1;
+      }
+      if (newx < 0) {
+        collides = true;
+        direction.x = -1;
+      }
+      if (newx >= width) {
+        collides = true;
+        direction.x = 1;
+      }
+
+      if (collides) {
+        this.velocity.y *= -direction.y / this.sturdiness;
+        this.velocity.x *= -direction.x / this.sturdiness;
+        return;
+      }
+
+      this.previous_position.x = this.position.x;
+      this.previous_position.y = this.position.y;
+
+      this.position.x = newx;
+      this.position.y = newy;
+
+      this.floored_previous_position = { 
+        x:Math.floor(this.floored_position.x), 
+        y:Math.floor(this.floored_position.y) 
+      };
+      this.floored_position = { x:floored_newx, y:floored_newy };
+    }
+
+    update() {
+      this.velocity.y += down.y * gravity;
+      this.velocity.x += down.x * gravity;
+
+      this.move(this.velocity.x, this.velocity.y);
+
+      if (
+        this.floored_position.x != this.floored_previous_position.x ||
+        this.floored_position.y != this.floored_previous_position.y
+        ) {
+        this.draw();
+      }
+    }
+
+    draw() {
+      // clear previous position
+      var char = characters.charAt(Math.random() * characters.length | 0);
+      _c.fillStyle = colors.off;
+
+      let px = this.floored_previous_position.x*offset.x;
+      let py = this.floored_previous_position.y*offset.y;
+
+      _c.clearRect(px, py, offset.x, offset.y);
+      _c.fillText(char, px, offset.y+py);
+
+      // draw on current position
+      // char = characters.charAt(Math.random() * characters.length | 0);
+      _c.fillStyle = colors.on;
+
+      let x = this.floored_position.x*offset.x;
+      let y = this.floored_position.y*offset.y;
+
+      _c.clearRect(x, y, offset.x, offset.y);
+      _c.fillText(char, x, offset.y+y);
+    }
+  }
+
+  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  var _c = document.querySelector("canvas").getContext("2d");
+  var offset = { x:8, y:10 };
+  var down = { x:0, y:1 };
+  var width=0, height=0;
+  var particles = [];
+  var gravity = .02;
+
+  var colors = {
+    off: "#e8e8e8",
+    on: "#000000",
+  };
+
+  _c.font = "12px Courier";
+
+  window.onresize = function() {
+    particles = [];
+
+    _c.canvas.width = window.innerWidth;
+    _c.canvas.height = window.innerHeight;
+
+    _c.fillStyle = colors.off;
+
+    height=0;
+    for (let y=offset.y; y<_c.canvas.height+offset.y; y+=offset.y) {
+      height++;
+      width=0;
+      for (let x=0; x<_c.canvas.width-offset.x; x+=offset.x) {
+        width++;
+        var char = characters.charAt(Math.random() * characters.length | 0);
+        _c.fillText(char, x, y);
+      }
+    }
+
+    for (let x=0; x<width; x++) {
+      new particle(x, 0-(Math.random() * 10));
+      new particle(x, 11-(Math.random() * 10));
+    }
+  }
+
+  init();
+
+  function init() {
+    window.onresize();
+
+    update();
+  }
+
+  function update() {
+    for (let p of particles) {
+      p.update();
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  function updatedown(roll, pitch) {
+    down = { x:roll, y:pitch };
+    console.log(down);
+  }
+
+  var slider_roll = document.getElementById("roll");
+  var slider_pitch = document.getElementById("pitch");
+
+  function sliders() {
+    updatedown(
+      slider_roll.value/10,
+      slider_pitch.value/10
+      );
+  }
+
+  // mobile tilt :)
+  var hasgyro = false;
+
+  window.addEventListener('deviceorientation', event => {
+
+    let gamma = event.gamma/90;
+    while (gamma > 1) gamma -= 1;
+    while (gamma < -1) gamma += 1;
+
+    let beta = event.beta/90;
+    while (beta > 1) beta -= 1;
+    while (beta < -1) beta += 1;
+    
+    updatedown(gamma, beta);
+
+    slider_roll.value = gamma*10;
+    slider_pitch.value = beta*10;
+
+    if (!hasgyro) {
+      hasgyro = true;
+      slider_roll.style.display = "none";
+      slider_pitch.style.display = "none";
+    }
+
+  }, true);
+
+</script>
+
+</html>
